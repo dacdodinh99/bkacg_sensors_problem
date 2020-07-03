@@ -1,4 +1,7 @@
-#define EPS 1e-6
+#pragma once
+
+
+#define EPS 1e-8
 const double PI = acos(-1.0);
 
 double DEG_to_RAD(double d) { return d * PI / 180.0; }
@@ -50,6 +53,16 @@ public:
         this->polygon = _polygon;
     }
 
+    ConvexPolygon(int x, int y, double r) {
+        Polygon _polygon;
+        Point pivot = Point(r, 0);
+        for (double i = 0; i < 2 * PI; i += 2 * PI / MAXN) {
+            _polygon.push_back(pivot.rotate(i));
+        }
+        
+        this->polygon = _polygon;
+    }
+
     void extend_polygon(double r) {
         assert(polygon.size() > 2);
 
@@ -97,12 +110,11 @@ public:
 
     }
 
-    Polygon getPolygon() {
+    Polygon getPolygon() const {
         return this->polygon;
     }
 
 
-    // Execute[{"A = (1, 2)"," B = (3, 4)"," C = (5, 6)"}]
     void printPolygon() {
         cout << polygon.size() << endl;
         for (int i = 0; i < polygon.size(); i++) {
@@ -111,38 +123,30 @@ public:
         }
     }
 
-    static Polygon convex_intersect(Polygon P, Polygon Q) {
+    static ConvexPolygon convex_intersect(Polygon P, Polygon Q) {
         const int n = P.size(), m = Q.size();
-        int a = 0, b = 0, aa = 0, ba = 0;
-        enum { Pin, Qin, Unknown } in = Unknown;
-        Polygon R;
-        do {
-            int a1 = (a+n-1) % n, b1 = (b+m-1) % m;
-            double C = (P[a] - P[a1]) % (Q[b] - Q[b1]);
-            double A = (P[a1] - Q[b]) % (P[a] - Q[b]);
-            double B = (Q[b1] - P[a]) % (Q[b] - P[a]);
-            Point r;
-            if (intersect_1pt(P[a1], P[a], Q[b1], Q[b], r)) {
-                if (in == Unknown) aa = ba = 0;
-                R.push_back( r );
-                in = B > 0 ? Pin : A > 0 ? Qin : in;
-            }
-            if (C == 0 && B == 0 && A == 0) {
-                if (in == Pin) { b = (b + 1) % m; ++ba; }
-                else            { a = (a + 1) % m; ++aa; }
-            } else if (C >= 0) {
-                if (A > 0) { if (in == Pin) R.push_back(P[a]); a = (a+1)%n; ++aa; }
-                else       { if (in == Qin) R.push_back(Q[b]); b = (b+1)%m; ++ba; }
-            } else {
-                if (B > 0) { if (in == Qin) R.push_back(Q[b]); b = (b+1)%m; ++ba; }
-                else       { if (in == Pin) R.push_back(P[a]); a = (a+1)%n; ++aa; }
-            }
-        } while ( (aa < n || ba < m) && aa < 2*n && ba < 2*m );
-        if (in == Unknown) {
-            if (in_convex(Q, P[0])) return P;
-            if (in_convex(P, Q[0])) return Q;
+        vector<Point> to_make_convex;
+        for (auto p : P) {
+            if (in_convex(Q, p)) to_make_convex.push_back(p);
         }
-        return R;
+        for (auto p : Q) {
+            if (in_convex(P, p)) to_make_convex.push_back(p);
+        }
+
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                Point x = P[(i + n - 1) % n], y = P[i];
+                Point xx = Q[(j + m - 1) % m], yy = Q[j];
+                Point r;
+                if (intersect_1pt(x, y, xx, yy, r)) {
+                    to_make_convex.push_back(r);
+                }
+            }
+        }
+
+        ConvexHull(to_make_convex);
+
+        return ConvexPolygon(to_make_convex);
     }
 
 private:
@@ -150,6 +154,39 @@ private:
 
     static int ccw(Point a, Point b, Point c) {
         return cmp((b-a)%(c-a),0);
+    }
+
+    static double area2(Point a, Point b, Point c) { return a%b + b%c + c%a; }
+
+    static void ConvexHull(vector<Point> &pts) {
+        sort(pts.begin(), pts.end());
+        pts.erase(unique(pts.begin(), pts.end()), pts.end());
+        vector<Point> up, dn;
+        for (int i = 0; i < pts.size(); i++) {
+            // Note: If need maximum points on convex hull, need to change >= and <= to > and <.
+            while (up.size() > 1 && area2(up[up.size()-2], up.back(), pts[i]) >= 0) up.pop_back();
+            while (dn.size() > 1 && area2(dn[dn.size()-2], dn.back(), pts[i]) <= 0) dn.pop_back();
+            up.push_back(pts[i]);
+            dn.push_back(pts[i]);
+        }
+        pts = dn;
+        for (int i = (int) up.size() - 2; i >= 1; i--) pts.push_back(up[i]);
+        
+    #ifdef REMOVE_REDUNDANT
+        if (pts.size() <= 2) return;
+        dn.clear();
+        dn.push_back(pts[0]);
+        dn.push_back(pts[1]);
+        for (int i = 2; i < pts.size(); i++) {
+            if (between(dn[dn.size()-2], dn[dn.size()-1], pts[i])) dn.pop_back();
+            dn.push_back(pts[i]);
+        }
+        if (dn.size() >= 3 && between(dn.back(), dn[0], dn[1])) {
+            dn[0] = dn.back();
+            dn.pop_back();
+        }
+        pts = dn;
+    #endif
     }
 
     static double getAngle(Point a, Point b, Point c) {
@@ -173,13 +210,13 @@ private:
         int a = 1, b = l.size()-1, c;
         if (Det(l[0], l[a], l[b]) > 0) swap(a,b);
         // Allow on edge --> if (Det... > 0 || Det ... < 0)
-        if (Det(l[0], l[a], p) >= 0 || Det(l[0], l[b], p) <= 0) return false;
+        if (Det(l[0], l[a], p) > 0 || Det(l[0], l[b], p) < 0) return false;
         while(abs(a-b) > 1) {
             c = (a+b)/2;
             if (Det(l[0], l[c], p) > 0) b = c; else a = c;
         }
         // Alow on edge --> return Det... <= 0
-        return Det(l[a], l[b], p) < 0;
+        return Det(l[a], l[b], p) <= 0;
     }
 
     double getArea(Point a, Point b, Point c) {
