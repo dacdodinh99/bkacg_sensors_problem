@@ -45,7 +45,7 @@ struct Point {
 };
 
 struct ConvexPolygon { // The order for the vertices of all ConvexPolygon P, Q has to be counter-clockwise
-    const int MAXN = 100;
+    const int MAXN = 20;
     typedef vector< Point > Polygon;
 
 public:
@@ -56,8 +56,9 @@ public:
     ConvexPolygon(int x, int y, double r) {
         Polygon _polygon;
         Point pivot = Point(r, 0);
+        Point O = Point(x, y);
         for (double i = 0; i < 2 * PI; i += 2 * PI / MAXN) {
-            _polygon.push_back(pivot.rotate(i));
+            _polygon.push_back(pivot.rotate(i) + O);
         }
         
         this->polygon = _polygon;

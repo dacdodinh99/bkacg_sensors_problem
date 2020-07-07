@@ -24,6 +24,7 @@ double hop(int x, int y, vector<ConvexPolygon> polygons) {
 
     ConvexPolygon new_polygon = ConvexPolygon::convex_intersect(polygons[x].getPolygon(), polygons[y].getPolygon());
 
+
     if (new_polygon.getPolygon().size() == 0) return 1e18;
 
     new_polygons.push_back(new_polygon);
@@ -37,10 +38,11 @@ int main() {
     freopen("in.txt", "r", stdin); 
     int N;
     double R, L;
+
     cin >> N >> R >> L;
     vector<ConvexPolygon> polygons;
     for (int i = 1; i <= N; i++) {
-        int x, y;
+        double x, y;
         cin >> x >> y;
         ConvexPolygon new_polygon = ConvexPolygon(x, y, R);
         polygons.push_back(new_polygon);
@@ -49,13 +51,14 @@ int main() {
     int ans = 0;
 
     while (TSP_solver(polygons) > L) {
+        cout << "So sensor hien tai: " << ans << endl;
         pair<int, int> mem = {-1, -1};
         double best = 1e9;
         
         // Check extend polygons
         for (int i = 0; i < (int) polygons.size(); i++) {
             double foo = extend(i, polygons, R);
-            if (best < foo) {
+            if (best > foo) {
                 mem = {i, -1};
                 best = foo;
             }
@@ -65,22 +68,42 @@ int main() {
         for (int i = 0; i < (int) polygons.size(); i++) {
             for (int j = i + 1; j < (int) polygons.size(); j++) {
                 double foo = hop(i, j, polygons);
-                if (best < foo) {
+                if (best > foo) {
                     mem = {i, j};
                     best = foo;
                 }
             }
         }
 
+
         if (mem.second == -1) {
+            cout << "No da giac:" << mem.first << endl;
             polygons[mem.first].extend_polygon(R);
         } else {
+            cout << "Hop da giac" << ' ' << mem.first << ' ' << mem.second << endl;
+
             vector<ConvexPolygon> new_polygons;
             for (int i = 0; i < (int) polygons.size(); i++) {
-                if (i != mem.first && i != mem.second) new_polygons.push_back(new_polygons[i]);
+                if (i != mem.first && i != mem.second) new_polygons.push_back(polygons[i]);
             }
-            
+
+
+            ConvexPolygon new_polygon = ConvexPolygon::convex_intersect(polygons[mem.first].getPolygon(), polygons[mem.second].getPolygon());
+
+
+            new_polygons.push_back(new_polygon);
+
+            polygons.clear();
+            for (auto e : new_polygons) polygons.push_back(e);
+            new_polygons.clear();
+
+
+
         }
+
+        ans++;
     }
+
+    cout << "Ket qua cuoi cung: " << ans << endl;
     return 0;
 }

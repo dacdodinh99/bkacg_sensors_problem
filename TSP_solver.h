@@ -21,6 +21,8 @@ double TSP_solver(const vector<ConvexPolygon> &a) {
 
     for (int i = 0; i < n; i++) {
         polygons[i] = a[i].getPolygon();
+        // cout << "Da giac thu:" << i << endl;
+        // for (auto e : polygons[i]) cout << e.x << ' ' << e.y << endl;
     }
 
     int id = 0;
@@ -31,21 +33,27 @@ double TSP_solver(const vector<ConvexPolygon> &a) {
 
     double res = 1e18;
 
-    for (int start = 0; start < (int) polygons[0].size(); start++) {
+    for (int start = 0; start < 1; start++) {
         for (int mask = 0; mask < (1 << n); mask++) {
             for (int i = 0; i < n; i++) dp[mask][i].resize((int) polygons[i].size(), 1e18);
         }
+
         dp[1][0][start] = 0;
 
         for (int mask = 2; mask < (1 << n); mask++) {
-            for (int i = 0; i < n; i++) {
+            for (int i = 1; i < n; i++) {
                 if (bit(mask, i) == 0) continue;
                 for (int u = 0; u < (int) polygons[i].size(); u++) {
                     for (int j = 0; j < n; j++) {
-                        if (j == i || bit(mask, i) == 0) continue;
+                        if (j == i || bit(mask, j) == 0) continue;
                         for (int v = 0; v < (int) polygons[j].size(); v++) {
                             double len = (polygons[i][u] - polygons[j][v]).len();
+                            double pre = dp[mask][i][u];
                             dp[mask][i][u] = min(dp[mask][i][u], dp[mask ^ (1 << i)][j][v] + len);
+                            // if (dp[mask][i][u] < 1e-6) {
+                            //     cout << polygons[i][u].x << ' ' << polygons[i][u].y << endl;
+                            //     cout << polygons[j][v].x << ' ' << polygons[j][v].y << endl;
+                            // }
                         }
                     }
                 }
@@ -62,7 +70,7 @@ double TSP_solver(const vector<ConvexPolygon> &a) {
 
         res = min(res, tmp_res);
     }
-
+    // cout << "Dap so TSP: " << res << endl;
     return res;
 }
 
