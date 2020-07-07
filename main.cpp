@@ -15,7 +15,7 @@ double extend(int k, vector<ConvexPolygon> polygons, double R) {
     return TSP_solver(polygons); 
 }
 
-double hop(int x, int y, vector<ConvexPolygon> polygons) {
+double hop(int x, int y, vector<ConvexPolygon> polygons, double r) {
     if (x > y) swap(x, y);
     vector<ConvexPolygon> new_polygons;
     for (int i = 0; i < (int) polygons.size(); i++) {
@@ -24,8 +24,9 @@ double hop(int x, int y, vector<ConvexPolygon> polygons) {
 
     ConvexPolygon new_polygon = ConvexPolygon::convex_intersect(polygons[x].getPolygon(), polygons[y].getPolygon());
 
-
     if (new_polygon.getPolygon().size() == 0) return 1e18;
+
+    new_polygon.extend_polygon(r);
 
     new_polygons.push_back(new_polygon);
 
@@ -67,7 +68,7 @@ int main() {
         // Hop
         for (int i = 0; i < (int) polygons.size(); i++) {
             for (int j = i + 1; j < (int) polygons.size(); j++) {
-                double foo = hop(i, j, polygons);
+                double foo = hop(i, j, polygons, R);
                 if (best > foo) {
                     mem = {i, j};
                     best = foo;
@@ -90,6 +91,8 @@ int main() {
 
             ConvexPolygon new_polygon = ConvexPolygon::convex_intersect(polygons[mem.first].getPolygon(), polygons[mem.second].getPolygon());
 
+            new_polygon.extend_polygon(R);
+
 
             new_polygons.push_back(new_polygon);
 
@@ -97,13 +100,11 @@ int main() {
             for (auto e : new_polygons) polygons.push_back(e);
             new_polygons.clear();
 
-
-
         }
 
         ans++;
     }
-
+    cout << TSP_solver(polygons) << endl;
     cout << "Ket qua cuoi cung: " << ans << endl;
     return 0;
 }
